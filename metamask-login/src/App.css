@@ -1,0 +1,63 @@
+h1{
+  align-items: center;
+  color: whitesmoke;
+  
+}
+
+.walletcard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-image: url("bgimage.jpg");
+  
+  padding: 80px;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px white;
+  width: 1100px;
+  height: 70vh;
+}
+
+button {
+  padding: 10px;
+  margin: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  background-color: green;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0061a8;
+}
+
+label {
+  align-items: center;
+  padding-left: 30%;
+  font-size: 16px;
+  color: white;
+}
+
+input {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 10px;
+  color: white;
+}
+.receiverAddress
+{
+  color: white;
+
+
+}
