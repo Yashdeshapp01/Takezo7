@@ -1,53 +1,87 @@
-import react from "react";
-import {ethers} from 'ethers'
+import React, { useState } from "react";
+import { ethers } from "ethers";
 
-const WalletCard = ()=>{
-    const[balance,Setbalance]=react.useState(null);
-    const[defaultAcc,SetdefaultAcc]=react.useState(null);
-    const[errmsg,Seterrmsg]=react.useState(null);
-    const[buttext,Setbuttext]=react.useState('Connect Wallet');
-    
-    const connectWallethandler=()=>{
-        if(window.ethereum){
-        window.ethereum.request({method: 'eth_requestAccounts'})
-        .then(result=>{
-            accChangehandler(result[0]);
-        })
-        }
-        else{
-            Seterrmsg("Install Metamask")
-        }
+const WalletCard = () => {
+  const [balance, setBalance] = useState(null);
+  const [defaultAcc, setDefaultAcc] = useState(null);
+  const [errmsg, setErrMsg] = useState(null);
+  const [butText, setButText] = useState("Connect Wallet");
+  const [receiverAddress, setReceiverAddress] = useState("");
+  const [amount, setAmount] = useState("");
+
+  const connectWalletHandler = () => {
+    console.log(defaultAcc);
+    if (window.ethereum) {
+      window.ethereum
+        .request({ method: "eth_requestAccounts" })
+        .then((result) => {
+          accChangeHandler(result[0]);
+        });
+    } else {
+      setErrMsg("Install Metamask");
     }
+  };
 
-    const accChangehandler=(newAccount)=>{
+  const sendTransaction = () => {
+    const transactionObject = {
+      from: defaultAcc,
+      to: receiverAddress,
+      gas: "0x76c0", // 30400
+      gasPrice: "0x9184e72a000", // 10000000000000
+      value: ethers.parseEther(amount).toString(16),
+    };
+    window.ethereum.request({ method: "eth_sendTransaction", params: [transactionObject] });
+  };
 
-        SetdefaultAcc(newAccount)
-        getbalance(newAccount.toString())
+  const accChangeHandler = (newAccount) => {
+    setDefaultAcc(newAccount);
+    getBalance(newAccount.toString());
+  };
 
-    }
-    const getbalance=(address)=>{
-        window.ethereum.request({method: 'eth_getBalance',params:[address,'latest']})
-        .then(balance=>{
-           Setbalance(ethers.formatEther(balance));
-        })
-    }
-    const chainChangedHandler = () => {
-		
-		window.location.reload();
-	}
-    window.ethereum.on('accountsChanged', accChangehandler);
-    window.ethereum.on('chainChanged', chainChangedHandler);
-    return(
+  const getBalance = (address) => {
+    window.ethereum
+      .request({ method: "eth_getBalance", params: [address, "latest"] })
+      .then((balance) => {
+        setBalance(ethers.formatEther(balance));
+      });
+  };
+
+  const chainChangedHandler = () => {
+    window.location.reload();
+  };
+
+  window.ethereum.on("accountsChanged", accChangeHandler);
+  window.ethereum.on("chainChanged", chainChangedHandler);
+
+  return (
     <div className="walletcard">
-        <button onClick={connectWallethandler}>{buttext}</button>
-    <div>
-        <h2>Address:{defaultAcc}</h2>
-        <h2>Balance:{balance}</h2>
+      <button onClick={connectWalletHandler}>{butText}</button>
+      <button onClick={sendTransaction}>Send Transaction</button>
+      <div>
+        <h2>Address: {defaultAcc}</h2>
+        <h2>Balance: {balance}</h2>
+      </div>
+      {errmsg}
+      <div>
+        <label htmlFor="receiverAddress">Receiver's address:</label>
+        <input
+          id="receiverAddress"
+          type="text"
+          value={receiverAddress}
+          onChange={(e) => setReceiverAddress(e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="amount">Amount:</label>
+        <input
+          id="amount"
+          type="text"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+      </div>
     </div>
-    {errmsg}
-    </div>
+  );
+};
 
-    )
-}
-
-export default WalletCard
+export default WalletCard;
