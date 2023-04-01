@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import { ethers } from "ethers";
+import * as web3  from "@solana/web3.js";
+
+
+
 
 const WalletCard = () => {
   const [balance, setBalance] = useState(null);
@@ -9,50 +12,105 @@ const WalletCard = () => {
   const [receiverAddress, setReceiverAddress] = useState("");
   const [amount, setAmount] = useState("");
 
-  const connectWalletHandler = () => {
+  const connectWalletHandler = async () => {
+    
     console.log(defaultAcc);
-    if (window.ethereum) {
-      window.ethereum
-        .request({ method: "eth_requestAccounts" })
-        .then((result) => {
-          accChangeHandler(result[0]);
-        });
+    if (window.solana) {
+      try {
+        const provider = window.solana
+        const { publicKey } = await window.solana.connect();
+        accChangeHandler(publicKey.toString());
+        return provider
+      } catch (error) {
+        console.error(error);
+        setErrMsg("Failed to connect to Phantom wallet");
+      }
     } else {
-      setErrMsg("Install Metamask");
+      setErrMsg("Install Phantom wallet");
     }
   };
 
-  const sendTransaction = () => {
-    const transactionObject = {
-      from: defaultAcc,
-      to: receiverAddress,
-      gas: "0x76c0", // 30400
-      gasPrice: "0x9184e72a000", // 10000000000000
-      value: ethers.parseEther(amount).toString(16),
-    };
-    window.ethereum.request({ method: "eth_sendTransaction", params: [transactionObject] });
-  };
+   const sendTransaction = async () => {
+    var provider = await connectWalletHandler()
+    if (!defaultAcc) {
+      setErrMsg("Connect to wallet first");
+      return;
+    }
+    if (!receiverAddress || !amount) {
+      setErrMsg("Enter a receiver address and amount");
+      return;
+    }
+  
+    const connection = new web3.Connection(web3.clusterApiUrl("devnet"), "confirmed");
+    const senderPublicKey = new web3.PublicKey(defaultAcc);
+    const receiverPublicKey = new web3.PublicKey(receiverAddress);
+    // const lamports = web3.LAMPORTS_PER_SOL * amount;
+    var airdropSignature = await connection.requestAirdrop(
+        senderPublicKey,
+        web3.LAMPORTS_PER_SOL,
+      );
+  
+      // Confirming that the airdrop went through
+      await connection.confirmTransaction(airdropSignature);
+      console.log("Airdropped")
+    console.log(web3.LAMPORTS_PER_SOL*amount);
+      var transaction = new web3.Transaction().add(
+        web3.SystemProgram.transfer({
+          fromPubkey: senderPublicKey,
+          toPubkey: receiverPublicKey,
+          lamports: web3.LAMPORTS_PER_SOL*amount //Investing 1 SOL. Remember 1 Lamport = 10^-9 SOL.
+        }),
+      );
+      transaction.feePayer = await provider.publicKey;
+      let blockhashObj = await connection.getRecentBlockhash();
+      transaction.recentBlockhash = await blockhashObj.blockhash;
+  
+      // Transaction constructor initialized successfully
+      if(transaction) {
+        console.log("Txn created successfully");
+      }
+      
+      // Request creator to sign the transaction (allow the transaction)
+      let signed = await provider.signTransaction(transaction);
+      // The signature is generated
+      let signature = await connection.sendRawTransaction(signed.serialize());
+      // Confirm whether the transaction went through or not
+      await connection.confirmTransaction(signature);
+  
+      //Print the signature here
+      console.log("Signature: ", signature);
+    }
+  
+  
+ 
 
-  const accChangeHandler = (newAccount) => {
+  const accChangeHandler = async (newAccount) => {
     setDefaultAcc(newAccount);
-    getBalance(newAccount.toString());
+    await getbalance(newAccount.toString());
   };
 
-  const getBalance = (address) => {
-    window.ethereum
-      .request({ method: "eth_getBalance", params: [address, "latest"] })
-      .then((balance) => {
-        setBalance(ethers.formatEther(balance));
-      });
+  const getbalance = async (address) => {
+    console.log(address);
+    const connection = new web3.Connection(web3.clusterApiUrl("devnet"), "confirmed");
+    const publicKey = new web3.PublicKey(address);
+    const balance = await connection.getBalance(publicKey);
+    setBalance(balance/(2*web3.LAMPORTS_PER_SOL)-0.99999);
   };
 
   const chainChangedHandler = () => {
     window.location.reload();
   };
 
-  window.ethereum.on("accountsChanged", accChangeHandler);
-  window.ethereum.on("chainChanged", chainChangedHandler);
-
+  window.solana?.on("connect", () => {
+    console.log("Connected to Phantom wallet");
+  });
+  window.solana?.on("disconnect", () => {
+    console.log("Disconnected from Phantom wallet");
+    setDefaultAcc(null);
+    setBalance(null);
+  });
+  window.solana?.on("accountsChanged", accChangeHandler);
+  window.solana?.on("networkChange", chainChangedHandler);
   return (
     <div className="walletcard">
       <button onClick={connectWalletHandler}>{butText}</button>
